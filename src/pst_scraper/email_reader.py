@@ -29,11 +29,11 @@ def parse_mapi_message(message: MapiMessage):
     body_type = BodyType(message.body_type)
     match body_type:
         case BodyType.TEXT:
-            body = message.body
+            body = message.body.replace("\n", "\\n")
         case BodyType.HTML:
-            body = message.body_html
+            body = message.body_html.replace("\n", "\\n")
         case BodyType.RTF:
-            body = message.body_rtf
+            body = message.body_rtf.replace("\n", "\\n")
             
     recipient_dict = {"to": [], "cc": [], "bcc": []}
     for recipient in message.recipients:
