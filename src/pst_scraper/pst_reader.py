@@ -22,7 +22,7 @@ def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, output
     num_attachments = initial_num_attachments
 
     for sub_folder in folder.get_sub_folders():
-        added_emails, added_attachments = read_folder_emails_internal(sub_folder,  output_emails_path, output_attachments_path, num_emails, num_attachments)
+        added_emails, added_attachments = read_folder_emails_internal(pst, sub_folder, output_emails_path, output_attachments_path, num_emails, num_attachments)
         
         num_emails += added_emails
         num_attachments += added_attachments

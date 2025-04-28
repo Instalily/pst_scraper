@@ -9,6 +9,7 @@ A Python utility that converts Microsoft Outlook PST files into structured CSV d
 - Outputs data to CSV format for easy importing into databases or analysis tools
 - Processes folders recursively, maintaining PST folder structure
 - Batched processing for memory efficiency
+- Supports processing multiple PST files in a single run
 
 ## Installation
 
@@ -36,11 +37,11 @@ The tool processes PST files and generates two CSV files:
 ### Basic Usage
 
 ```python
-from pst_scraper.pst_reader import read_pst
+from pst_scraper.pst_reader import read_psts
 
-# Convert PST file to CSV
-num_emails, num_attachments = read_pst(
-    pst_file_path="path/to/your/file.pst",
+# Convert multiple PST files to CSV
+num_emails, num_attachments = read_psts(
+    pst_file_paths=["path/to/file1.pst", "path/to/file2.pst"],
     output_emails_path="emails.csv",
     output_attachments_path="attachments.csv"
 )
@@ -77,3 +78,4 @@ The attachments CSV file contains:
 - Encrypted messages are not supported and will raise an error
 - Signed messages will have their signatures removed during processing
 - The tool maintains the folder structure of the original PST file
+- When processing multiple PST files, the output CSV files will contain all emails and attachments from all input files
