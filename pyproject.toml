@@ -1,0 +1,19 @@
+[project]
+name = "pst-scraper"
+version = "0.1.0"
+description = "A Python utility that converts Microsoft Outlook PST files into structured CSV documents"
+authors = [
+    {name = "Evan Vera", email = "evan@instalily.ai"}
+]
+dependencies = [
+    "Aspose.Email-for-Python-via-NET>=25.4",
+    "pandas>=2.0.0",
+    "python-magic>=0.4.27"
+]
+requires-python = ">=3.12"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
