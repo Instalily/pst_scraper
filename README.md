@@ -13,14 +13,18 @@ A Python utility that converts Microsoft Outlook PST files into structured CSV d
 ## Installation
 
 1. Clone this repository
-2. Create a Python virtual environment:
+2. Create a Python virtual environment (Python 3.12 or higher required):
    ```bash
    python -m venv pst_scraper_env
    source pst_scraper_env/bin/activate  # On Windows use: pst_scraper_env\Scripts\activate
    ```
-3. Install the required dependencies:
+3. Install the package and its dependencies:
    ```bash
-   pip install aspose-email pandas python-magic
+   pip install -e .
+   ```
+   For development, install with additional tools:
+   ```bash
+   pip install -e ".[dev]"
    ```
 
 ## Usage
