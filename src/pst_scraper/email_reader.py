@@ -6,9 +6,12 @@ from magic import from_buffer
 from pst_scraper.email_enums import *
 
 def parse_mapi_message(message: MapiMessage):
-    if message.is_encrypted:
-        raise RuntimeError("Message is encrypted. We don't know how to handle this.")
-
+    """
+    Parses a mapi message and returns a dictionary of the message.
+    
+    Args:
+        message: The mapi message to parse.
+    """
     if message.is_signed:
         message.remove_signature()
     
