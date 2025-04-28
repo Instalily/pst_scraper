@@ -41,7 +41,7 @@ def parse_mapi_message(message: MapiMessage):
         email_address = recipient.email_address
         recipient_type = RecipientType(recipient.recipient_type)
 
-        recipient_dict[recipient_type.name].append(f"{display_name} <{email_address}>")
+        recipient_dict[recipient_type.name.lower()].append(f"{display_name} <{email_address}>")
     
     attachments = []
     linked_messages = []
