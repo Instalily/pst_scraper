@@ -2,6 +2,7 @@ import os
 import pandas as pd
 from aspose.email.storage.pst import PersonalStorage, FolderInfo
 from pst_scraper.email_reader import parse_mapi_message
+from pst_scraper.email_enums import *
 
 def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, output_emails_path: str, output_attachments_path: str, initial_num_emails: int, initial_num_attachments: int) -> tuple[int, int]:
     """
@@ -38,6 +39,19 @@ def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, output
             mapi = pst.extract_message(messageInfo)
             email_dict = parse_mapi_message(mapi)
 
+            old_recipients = email_dict["recipients"]
+            email_dict["recipients"] = {
+                "to": old_recipients[RecipientType.TO],
+                "cc": old_recipients[RecipientType.CC],
+                "bcc": old_recipients[RecipientType.BCC]
+            }
+
+            email_dict["sensitivity"] = email_dict["sensitivity"].name
+            email_dict["body_type"] = email_dict["body_type"].name
+
+            if email_dict["body"]:
+                email_dict["body"] = email_dict["body"].replace("\n", "\\n")
+
             attachments = email_dict.pop("attachments")
             linked_messages = email_dict.pop("linked_messages")
 
@@ -46,6 +60,8 @@ def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, output
                 email_dict["attachment_ids"].append(num_attachments)
                 batched_attachments.append(attachment)
                 num_attachments += 1
+
+            email_dict["attachment_ids"] = " ".join(email_dict["attachment_ids"])
             
             email_dict["linked_message_ids"] = []
             for linked_message in linked_messages:
@@ -53,13 +69,15 @@ def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, output
                 batched_emails.append(linked_message)
                 num_emails += 1
 
+            email_dict["linked_message_ids"] = " ".join(email_dict["linked_message_ids"])
+
             batched_emails.append(email_dict)
             num_emails += 1
 
         batched_emails_df = pd.DataFrame(batched_emails)
         batched_attachments_df = pd.DataFrame(batched_attachments)
 
-        batched_emails_df.to_csv(output_emails_path, mode="a", index=False, header=not os.path.exists(output_emails_path))
+        batched_emails_df.to_csv(output_emails_path, mode="a", index=False, header=not os.path.exists(output_emails_path), line_terminator="\n")
         batched_attachments_df.to_csv(output_attachments_path, mode="a", index=False, header=not os.path.exists(output_attachments_path))
     
     return num_emails, num_attachments

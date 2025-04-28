@@ -34,17 +34,14 @@ def parse_mapi_message(message: MapiMessage):
             body = message.body_html
         case BodyType.RTF:
             body = message.body_rtf
-
-    if body:
-        body = body.replace("\n", "\\n")
             
-    recipient_dict = {"to": [], "cc": [], "bcc": []}
+    recipient_dict = {RecipientType.TO: [], RecipientType.CC: [], RecipientType.BCC: []}
     for recipient in message.recipients:
         display_name = recipient.display_name
         email_address = recipient.email_address
         recipient_type = RecipientType(recipient.recipient_type)
 
-        recipient_dict[recipient_type.name.lower()].append(f"{display_name} <{email_address}>")
+        recipient_dict[recipient_type].append(f"{display_name} <{email_address}>")
     
     attachments = []
     linked_messages = []
@@ -74,8 +71,8 @@ def parse_mapi_message(message: MapiMessage):
         "sender_name": sender_name,
         "client_submit_time": client_submit_time,
         "delivery_time": delivery_time,
-        "sensitivity": sensitivity.name,
-        "body_type": body_type.name,
+        "sensitivity": sensitivity,
+        "body_type": body_type,
         "body": body,
         "recipients": recipient_dict,
         "attachments": attachments,
