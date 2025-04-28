@@ -1,9 +1,56 @@
-import os
-import pandas as pd
+import os, csv
 from aspose.email.storage.pst import PersonalStorage, FolderInfo
 from pst_scraper.email_reader import parse_mapi_message
 from pst_scraper.email_enums import *
 
+def parse_email_dict_internal(email_dict: dict, batched_emails: list[dict], batched_attachments: list[dict], num_emails: int, num_attachments: int) -> tuple[int, int]:
+    """
+    Parses an email dictionary and appends it to a list of emails and attachments.
+    
+    Args:
+        email_dict: The email dictionary to parse.
+        batched_attachments: The list of attachments to append to.
+        batched_emails: The list of emails to append to.
+        num_attachments: The number of attachments to start the count at.
+        num_emails: The number of emails to start the count at.
+
+    Returns:
+        The number of emails and attachments read.
+    """
+    old_recipients = email_dict.pop("recipients")
+    email_dict["to"] = old_recipients[RecipientType.TO]
+    email_dict["cc"] = old_recipients[RecipientType.CC]
+    email_dict["bcc"] = old_recipients[RecipientType.BCC]
+
+    email_dict["sensitivity"] = email_dict["sensitivity"].name
+    email_dict["body_type"] = email_dict["body_type"].name
+
+    if not email_dict["body"] or email_dict["body"] == "NaN":
+        email_dict["body"] = ""
+
+    attachments = email_dict.pop("attachments")
+    linked_messages = email_dict.pop("linked_messages")
+    
+    email_dict["attachment_ids"] = []
+    for attachment in attachments:
+        batched_attachments.append(attachment)
+        email_dict["attachment_ids"].append(num_attachments)
+        num_attachments += 1
+
+    email_dict["linked_message_ids"] = []
+    for linked_message in linked_messages:
+        num_emails, num_attachments = parse_email_dict_internal(linked_message, batched_emails, batched_attachments, num_emails, num_attachments)
+        
+        batched_emails.append(linked_message)
+        email_dict["linked_message_ids"].append(num_emails)
+        num_emails += 1
+    
+    batched_emails.append(email_dict)
+    num_emails += 1
+
+    return num_emails, num_attachments
+
+    
 def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, output_emails_path: str, output_attachments_path: str, initial_num_emails: int, initial_num_attachments: int) -> tuple[int, int]:
     """
     Reads emails and attachments from a folder and appends them to a csv file.
@@ -39,46 +86,25 @@ def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, output
             mapi = pst.extract_message(messageInfo)
             email_dict = parse_mapi_message(mapi)
 
-            old_recipients = email_dict["recipients"]
-            email_dict["recipients"] = {
-                "to": old_recipients[RecipientType.TO],
-                "cc": old_recipients[RecipientType.CC],
-                "bcc": old_recipients[RecipientType.BCC]
-            }
+            num_emails, num_attachments = parse_email_dict_internal(email_dict, batched_emails, batched_attachments, num_emails, num_attachments)
 
-            email_dict["sensitivity"] = email_dict["sensitivity"].name
-            email_dict["body_type"] = email_dict["body_type"].name
-
-            if email_dict["body"]:
-                email_dict["body"] = email_dict["body"].replace("\n", "\\n")
-
-            attachments = email_dict.pop("attachments")
-            linked_messages = email_dict.pop("linked_messages")
-
-            email_dict["attachment_ids"] = []
-            for attachment in attachments:
-                email_dict["attachment_ids"].append(num_attachments)
-                batched_attachments.append(attachment)
-                num_attachments += 1
-
-            email_dict["attachment_ids"] = " ".join(email_dict["attachment_ids"])
+        write_emails_header = not os.path.exists(output_emails_path)
+        with open(output_emails_path, "a") as f:
+            fc = csv.DictWriter(f, fieldnames=batched_emails[0].keys())
             
-            email_dict["linked_message_ids"] = []
-            for linked_message in linked_messages:
-                email_dict["linked_message_ids"].append(num_emails)
-                batched_emails.append(linked_message)
-                num_emails += 1
+            if write_emails_header:
+                fc.writeheader()
 
-            email_dict["linked_message_ids"] = " ".join(email_dict["linked_message_ids"])
+            fc.writerows(batched_emails)
 
-            batched_emails.append(email_dict)
-            num_emails += 1
+        write_attachments_header = not os.path.exists(output_attachments_path)
+        with open(output_attachments_path, "a") as f:
+            fc = csv.DictWriter(f, fieldnames=batched_attachments[0].keys())
+            
+            if write_attachments_header:
+                fc.writeheader()
 
-        batched_emails_df = pd.DataFrame(batched_emails)
-        batched_attachments_df = pd.DataFrame(batched_attachments)
-
-        batched_emails_df.to_csv(output_emails_path, mode="a", index=False, header=not os.path.exists(output_emails_path), line_terminator="\n")
-        batched_attachments_df.to_csv(output_attachments_path, mode="a", index=False, header=not os.path.exists(output_attachments_path))
+            fc.writerows(batched_attachments)
     
     return num_emails, num_attachments
 

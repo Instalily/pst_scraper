@@ -1,8 +1,4 @@
-import os
-import pandas as pd
 from aspose.email.mapi import MapiMessage
-from magic import from_buffer
-
 from pst_scraper.email_enums import *
 
 def parse_mapi_message(message: MapiMessage):
@@ -57,12 +53,10 @@ def parse_mapi_message(message: MapiMessage):
                 raise RuntimeError("Attachment has no binary data and either has no object data or is not an outlook message. Either way, we don't know how to handle it.")
         elif attachment.binary_data:
             binary_data = bytes(attachment.binary_data)
-            mime_data = from_buffer(binary_data, mime=True)
-
-            attachment_dict = {"name": display_name, "type": mime_data, "data": binary_data}
+            attachment_dict = {"name": display_name, "data": binary_data}
             attachments.append(attachment_dict)
         else:
-            attachment_dict = {"name": display_name, "type": attachment.mime_tag, "data": None}
+            attachment_dict = {"name": display_name, "data": None}
             
     email_dict = {
         "subject": subject,
