@@ -1,11 +1,9 @@
 import os, csv, base64
 from aspose.email.storage.pst import PersonalStorage, FolderInfo
-from io import BytesIO
 from pst_scraper.email_reader import parse_mapi_message
 from pst_scraper.email_enums import *
-from tqdm import tqdm
 
-def parse_email_dict_internal(email_dict: dict, batched_emails: list[dict], batched_attachments: list[dict], attachments_dir: str, num_emails: int, num_attachments: int) -> tuple[int, int]:
+def parse_email_dict_internal(email_dict: dict, batched_emails: list[dict], batched_attachments: list[dict], accounts: dict[str, str], batched_emails_to_recipients: list[dict], attachments_dir: str, num_emails: int, num_attachments: int, linked_from : int = -1) -> tuple[int, int]:
     """
     Parses an email dictionary and appends it to a list of emails and attachments.
     
@@ -13,48 +11,75 @@ def parse_email_dict_internal(email_dict: dict, batched_emails: list[dict], batc
         email_dict: The email dictionary to parse.
         batched_attachments: The list of attachments to append to.
         batched_emails: The list of emails to append to.
+        accounts: The dictionary of accounts to append to.
+        batched_emails_to_recipients: The list of emails to recipients to append to.
         attachments_dir: The directory to save attachments to.
         num_attachments: The number of attachments to start the count at.
         num_emails: The number of emails to start the count at.
+        linked_from: The id of the email that this email is linked from, or -1 if it is not linked to by any email.
 
     Returns:
         The number of emails and attachments read.
     """
+    email_dict["id"] = num_emails
+    num_emails += 1
+
+    email_dict["linked_from"] = linked_from
+
+    email_dict["sender"] = email_dict.pop("sender_email")
+    email_dict.pop("sender_name")
+
     old_recipients = email_dict.pop("recipients")
-    email_dict["to"] = old_recipients[RecipientType.TO]
-    email_dict["cc"] = old_recipients[RecipientType.CC]
-    email_dict["bcc"] = old_recipients[RecipientType.BCC]
+    for recipient in old_recipients:
+        if recipient["email_address"] is None:
+            continue
+
+        recipient["email_address"] = recipient["email_address"].lower()
+        if recipient["email_address"] not in accounts:
+            accounts[recipient["email_address"]] = recipient["display_name"]
+
+        batched_emails_to_recipients.append({
+            "email_id": email_dict["id"],
+            "account_id": recipient["email_address"],
+            "recipient_type": recipient["recipient_type"].name
+        })
 
     email_dict["sensitivity"] = email_dict["sensitivity"].name
     email_dict["body_type"] = email_dict["body_type"].name
 
-    attachments = email_dict.pop("attachments")
+    # For CSV compatibility, escape any quotes in the body and wrap in quotes
+    # This ensures the body appears as a single field in CSV while remaining somewhat readable
+    # Escape quotes by doubling them for CSV compatibility
+    email_dict["body"] = email_dict["body"].replace('"', '""')
+    # Replace newlines with escaped versions for CSV compatibility
+    # To undo this transformation: body = body.replace('\\n', '\n').replace('\\r', '\r')
+    email_dict["body"] = email_dict["body"].replace('\n', '\\n').replace('\r', '\\r')
+    # Note: This transformation preserves the content but changes the format.
+    # It can be reversed using the replace operations in reverse order.
+    
     linked_messages = email_dict.pop("linked_messages")
-
-    email_dict["linked_message_ids"] = []
     for linked_message in linked_messages:
-        num_emails, num_attachments = parse_email_dict_internal(linked_message, batched_emails, batched_attachments, attachments_dir, num_emails, num_attachments)
-        email_dict["linked_message_ids"].append(num_emails - 1)  # Use the last email's index
+        num_emails, num_attachments = parse_email_dict_internal(linked_message, batched_emails, batched_attachments, accounts, batched_emails_to_recipients, attachments_dir, num_emails, num_attachments, linked_from = email_dict["id"])
 
-    email_dict["attachment_ids"] = []
+    attachments = email_dict.pop("attachments")
     for attachment in attachments:
-        attachment_data = attachment.pop("data")
+        attachment["id"] = num_attachments
+        attachment["email_id"] = email_dict["id"]
 
         attachment_path = f"{attachments_dir}/{num_attachments}"
         with open(attachment_path, "wb") as f:
-            f.write(attachment_data)
+            f.write(attachment.pop("data"))
+
+        attachment["path"] = attachment_path
         
         batched_attachments.append(attachment)
-        email_dict["attachment_ids"].append(num_attachments)
         num_attachments += 1
     
     batched_emails.append(email_dict)
-    num_emails += 1
-
     return num_emails, num_attachments
 
     
-def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, emails_csv_path: str, attachments_csv_path: str, attachments_dir: str, initial_num_emails: int, initial_num_attachments: int) -> tuple[int, int]:
+def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, emails_csv_path: str, attachments_csv_path: str, accounts_csv_path: str, accounts: dict[str, str], emails_to_recipients_csv_path: str, attachments_dir: str, initial_num_emails: int, initial_num_attachments: int) -> tuple[int, int]:
     """
     Reads emails and attachments from a folder and appends them to a csv file.
     
@@ -77,23 +102,20 @@ def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, emails
     num_attachments = initial_num_attachments
 
     for sub_folder in folder.get_sub_folders():
-        added_emails, added_attachments = read_folder_emails_internal(pst, sub_folder, emails_csv_path, attachments_csv_path, attachments_dir, num_emails, num_attachments)
-        
-        num_emails += added_emails
-        num_attachments += added_attachments
+        num_emails, num_attachments = read_folder_emails_internal(pst, sub_folder, emails_csv_path, attachments_csv_path, accounts_csv_path, accounts, emails_to_recipients_csv_path, attachments_dir, num_emails, num_attachments)
 
     n = folder.content_count
     batch_size = 50
 
-    for i in tqdm(range(0, n, batch_size), desc=f"Reading emails and attachments from folder {folder.display_name}"):
+    for i in range(0, n, batch_size):
         batched_emails = []
         batched_attachments = []
+        batched_emails_to_recipients = []
 
         for messageInfo in folder.get_contents(i, batch_size):
             mapi = pst.extract_message(messageInfo)
             email_dict = parse_mapi_message(mapi)
-
-            num_emails, num_attachments = parse_email_dict_internal(email_dict, batched_emails, batched_attachments, attachments_dir, num_emails, num_attachments)
+            num_emails, num_attachments = parse_email_dict_internal(email_dict, batched_emails, batched_attachments, accounts, batched_emails_to_recipients, attachments_dir, num_emails, num_attachments)
 
         write_emails_header = not os.path.exists(emails_csv_path)
         with open(emails_csv_path, "w" if write_emails_header else "a") as f:
@@ -112,10 +134,25 @@ def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, emails
                 fc.writeheader()
 
             fc.writerows(batched_attachments)
+
+        write_emails_to_recipients_header = not os.path.exists(emails_to_recipients_csv_path)
+        with open(emails_to_recipients_csv_path, "w" if write_emails_to_recipients_header else "a") as f:
+            fc = csv.DictWriter(f, fieldnames=batched_emails_to_recipients[0].keys())
+            
+            if write_emails_to_recipients_header:
+                fc.writeheader()
+
+            fc.writerows(batched_emails_to_recipients)
+
+        accounts_list = [{"email": email, "display_name": display_name} for email, display_name in accounts.items()]
+        with open(accounts_csv_path, "w") as f:
+            fc = csv.DictWriter(f, fieldnames=accounts_list[0].keys())
+            fc.writeheader()
+            fc.writerows(accounts_list)
     
     return num_emails, num_attachments
 
-def read_folder_emails(pst: PersonalStorage, folder: FolderInfo, emails_csv_path: str, attachments_csv_path: str, attachments_dir: str) -> tuple[int, int]:
+def read_folder_emails(pst: PersonalStorage, folder: FolderInfo, emails_csv_path: str, attachments_csv_path: str, accounts_csv_path: str, accounts: dict[str, str], emails_to_recipients_csv_path: str, attachments_dir: str) -> tuple[int, int]:
     """
     Reads emails and attachments from a folder and appends them to a csv file.
     
@@ -134,9 +171,9 @@ def read_folder_emails(pst: PersonalStorage, folder: FolderInfo, emails_csv_path
     num_emails = 0
     num_attachments = 0
 
-    return read_folder_emails_internal(pst, folder, emails_csv_path, attachments_csv_path, attachments_dir, num_emails, num_attachments)
+    return read_folder_emails_internal(pst, folder, emails_csv_path, attachments_csv_path, accounts_csv_path, accounts, emails_to_recipients_csv_path, attachments_dir, num_emails, num_attachments)
 
-def read_psts(pst_files: list[str] | list[BytesIO], emails_csv_path: str, attachments_csv_path: str, attachments_dir: str) -> tuple[int, int]:
+def read_psts(pst_file_paths: list[str], emails_csv_path: str, attachments_csv_path: str, accounts_csv_path: str, emails_to_recipients_csv_path: str, attachments_dir: str) -> tuple[int, int]:
     """
     Reads emails and attachments from a list of pst files and writes them to a csv file.
     
@@ -144,6 +181,8 @@ def read_psts(pst_files: list[str] | list[BytesIO], emails_csv_path: str, attach
         pst_file_paths: The list of pst files to read emails and attachments from.
         output_emails_path: The path to the csv file to write the emails to.
         output_attachments_path: The path to the csv file to write the attachments to.
+        output_accounts_path: The path to the csv file to write the accounts to.
+        output_emails_to_recipients_path: The path to the csv file to write the emails to recipients to.
 
     Returns:
         The number of emails and attachments read.
@@ -165,18 +204,17 @@ def read_psts(pst_files: list[str] | list[BytesIO], emails_csv_path: str, attach
             num_lines = sum(1 for _ in f)
         num_attachments = num_lines - 1
 
-    for pst_file in pst_files:
-        if isinstance(pst_file, BytesIO):
-            pst = PersonalStorage.from_stream(pst_file)
-        elif isinstance(pst_file, str):
-            pst = PersonalStorage.from_file(pst_file)
-        else:
-            raise ValueError(f"Invalid pst file type: {type(pst_file)}")
+    accounts = {}
+    if os.path.exists(accounts_csv_path):
+        with open(accounts_csv_path, "r") as f:
+            reader = csv.DictReader(f)
+            next(reader)
+            for row in reader:
+                accounts[row["email"]] = row["display_name"]
 
+    for pst_file_path in pst_file_paths:
+        pst = PersonalStorage.from_file(pst_file_path)
         pst_root = pst.root_folder
-
-        added_emails, added_attachments = read_folder_emails_internal(pst, pst_root, emails_csv_path, attachments_csv_path, attachments_dir, num_emails, num_attachments)
-        num_emails += added_emails
-        num_attachments += added_attachments
+        num_emails, num_attachments = read_folder_emails_internal(pst, pst_root, emails_csv_path, attachments_csv_path, accounts_csv_path, accounts, emails_to_recipients_csv_path, attachments_dir, num_emails, num_attachments)
 
     return num_emails, num_attachments

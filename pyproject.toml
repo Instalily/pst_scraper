@@ -7,7 +7,6 @@ authors = [
 ]
 dependencies = [
     "Aspose.Email-for-Python-via-NET>=25.4",
-    "tqdm>=4.67"
 ]
 requires-python = ">=3.12"
 readme = "README.md"
