@@ -165,7 +165,7 @@ def read_psts(pst_files: list[str] | list[BytesIO], emails_csv_path: str, attach
         num_attachments = num_lines - 1
 
     for pst_file in pst_files:
-        if isinstance(pst_file, bytes):
+        if isinstance(pst_file, BytesIO):
             pst = PersonalStorage.from_stream(pst_file)
         elif isinstance(pst_file, str):
             pst = PersonalStorage.from_file(pst_file)
