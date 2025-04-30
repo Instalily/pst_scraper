@@ -1,5 +1,6 @@
 import os, csv, base64
 from aspose.email.storage.pst import PersonalStorage, FolderInfo
+from io import BytesIO
 from pst_scraper.email_reader import parse_mapi_message
 from pst_scraper.email_enums import *
 
@@ -134,7 +135,7 @@ def read_folder_emails(pst: PersonalStorage, folder: FolderInfo, emails_csv_path
 
     return read_folder_emails_internal(pst, folder, emails_csv_path, attachments_csv_path, attachments_dir, num_emails, num_attachments)
 
-def read_psts(pst_files: list[str] | list[bytes], emails_csv_path: str, attachments_csv_path: str, attachments_dir: str) -> tuple[int, int]:
+def read_psts(pst_files: list[str] | list[BytesIO], emails_csv_path: str, attachments_csv_path: str, attachments_dir: str) -> tuple[int, int]:
     """
     Reads emails and attachments from a list of pst files and writes them to a csv file.
     
