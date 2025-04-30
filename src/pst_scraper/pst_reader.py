@@ -209,7 +209,7 @@ def read_psts(pst_file_paths: list[str], emails_csv_path: str, attachments_csv_p
     for pst_file_path in pst_file_paths:
         pst = PersonalStorage.from_file(pst_file_path)
         pst_root = pst.root_folder
-        num_emails, num_attachments = read_folder_emails_internal(pst, pst_root, emails_csv_path, attachments_csv_path, accounts_csv_path, accounts, emails_to_recipients_csv_path, attachments_dir, num_emails, num_attachments)
+        num_emails, num_attachments = read_folder_emails_internal(pst, pst_root, emails_csv_path, attachments_csv_path, accounts, emails_to_recipients_csv_path, attachments_dir, num_emails, num_attachments)
 
     accounts_list = [{"email": email, "display_name": display_name} for email, display_name in accounts.items()]
     with open(accounts_csv_path, "w") as f:

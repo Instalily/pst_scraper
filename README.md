@@ -6,13 +6,11 @@ A Python utility that converts Microsoft Outlook PST files into structured CSV d
 
 - Extracts emails from PST files with full metadata
 - Handles email attachments and linked messages
-- Outputs data to CSV format for easy importing into databases or analysis tools
+- Outputs data to multiple CSV tables for easy importing into SQL databases
 - Processes folders recursively, maintaining PST folder structure
 - Batched processing for memory efficiency
 - Supports processing multiple PST files in a single run
 - Saves email attachments to a specified directory with unique numeric identifiers
-- Appends to existing output files if they exist
-- Supports both file paths and byte streams as input
 
 ## Installation
 
@@ -33,32 +31,27 @@ A Python utility that converts Microsoft Outlook PST files into structured CSV d
 
 ## Usage
 
-The tool processes PST files and generates:
+The tool processes PST files and generates four CSV files and an attachments directory:
+
 1. `emails.csv` - Contains all email messages with their metadata
 2. `attachments.csv` - Contains information about email attachments
-3. An attachments directory - Contains the actual attachment files
+3. `accounts.csv` - Contains information about email accounts
+4. `emails_to_recipients.csv` - Contains the relationships between emails and their recipients
+5. An attachments directory - Contains the actual attachment files
 
 ### Basic Usage
 
 ```python
 from pst_scraper.pst_reader import read_psts
 
-# Convert multiple PST files to CSV using file paths
+# Convert multiple PST files to CSV
 num_emails, num_attachments = read_psts(
-    pst_files=["path/to/file1.pst", "path/to/file2.pst"],
+    pst_file_paths=["path/to/file1.pst", "path/to/file2.pst"],
     emails_csv_path="emails.csv",
     attachments_csv_path="attachments.csv",
+    accounts_csv_path="accounts.csv",
+    emails_to_recipients_csv_path="emails_to_recipients.csv",
     attachments_dir="attachments"  # Directory where attachment files will be saved
-)
-
-# Or using byte streams
-with open("path/to/file.pst", "rb") as f:
-    pst_data = f.read()
-num_emails, num_attachments = read_psts(
-    pst_files=[pst_data],  # Can mix file paths and byte streams
-    emails_csv_path="emails.csv",
-    attachments_csv_path="attachments.csv",
-    attachments_dir="attachments"
 )
 
 print(f"Processed {num_emails} emails and {num_attachments} attachments")
@@ -68,25 +61,56 @@ print(f"Processed {num_emails} emails and {num_attachments} attachments")
 
 #### emails.csv
 The emails CSV file contains the following columns:
+- `id`: Unique identifier for the email
 - `subject`: Email subject
 - `conversation_topic`: Conversation topic
-- `sender_email`: Sender's email address
-- `sender_name`: Sender's display name
+- `sender`: Sender's email address
 - `client_submit_time`: When the email was sent
 - `delivery_time`: When the email was delivered
 - `sensitivity`: Email sensitivity level (NORMAL, PERSONAL, PRIVATE, CONFIDENTIAL)
 - `body_type`: Type of email body (TEXT, HTML, RTF)
-- `body`: Email content
-- `to`: List of "To" recipients
-- `cc`: List of "CC" recipients
-- `bcc`: List of "BCC" recipients
-- `attachment_ids`: List of attachment IDs (corresponds to file names in attachments directory)
-- `linked_message_ids`: List of linked message IDs
+- `body`: Email content (with special CSV formatting)
+- `linked_from`: ID of the email this message is linked from, or -1 if not linked
+
+### Body Text Formatting
+
+The email body text undergoes several transformations to ensure proper CSV formatting:
+
+1. **Quote Escaping**: All double quotes (`"`) in the body are escaped by doubling them (`""`). This is standard CSV escaping for quotes.
+   - Example: `"Hello"` becomes `""Hello""`
+
+2. **Newline Handling**: All newlines (`\n`) and carriage returns (`\r`) are replaced with their escaped versions (`\\n` and `\\r` respectively).
+   - Example: `Hello\nWorld` becomes `Hello\\nWorld`
+
+To restore the original text format when reading the CSV:
+```python
+# To restore the original text:
+body = body.replace('\\n', '\n').replace('\\r', '\r').replace('""', '"')
+```
+
+These transformations ensure that:
+- The body appears as a single field in the CSV
+- Special characters are properly escaped
+- The content remains readable while being CSV-compatible
+- The original text can be perfectly restored
 
 #### attachments.csv
 The attachments CSV file contains:
-- `name`: Original display name of the attachment in the email
-- The file for each attachment is saved in the attachments directory with a name matching its ID number
+- `id`: Unique identifier for the attachment
+- `name`: Original display name of the attachment
+- `path`: Path to the attachment file in the attachments directory
+- `email_id`: ID of the email this attachment belongs to
+
+#### accounts.csv
+The accounts CSV file contains:
+- `email`: Email address (lowercase)
+- `display_name`: Display name of the account
+
+#### emails_to_recipients.csv
+The emails to recipients CSV file contains:
+- `email_id`: ID of the email
+- `account_id`: Email address of the recipient
+- `recipient_type`: Type of recipient (TO, CC, BCC)
 
 #### Attachments Directory
 - Each attachment is saved as a separate file
@@ -101,6 +125,6 @@ The attachments CSV file contains:
 - The tool maintains the folder structure of the original PST file
 - When processing multiple PST files, the output CSV files will contain all emails and attachments from all input files
 - Attachment files are saved with numeric IDs to avoid filename conflicts
-- If the output CSV files already exist, new data will be appended to them
-- The tool will automatically create the attachments directory if it doesn't exist
-- You can mix file paths and byte streams in the same call to `read_psts`
+- Email addresses are stored in lowercase to ensure consistent matching
+- The body field in emails.csv uses CSV-compatible escaping for quotes and newlines (see Body Text Formatting section)
+- All transformations to the body text are reversible using the provided restoration code
