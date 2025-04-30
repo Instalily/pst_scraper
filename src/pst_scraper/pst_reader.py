@@ -3,6 +3,7 @@ from aspose.email.storage.pst import PersonalStorage, FolderInfo
 from io import BytesIO
 from pst_scraper.email_reader import parse_mapi_message
 from pst_scraper.email_enums import *
+from tqdm import tqdm
 
 def parse_email_dict_internal(email_dict: dict, batched_emails: list[dict], batched_attachments: list[dict], attachments_dir: str, num_emails: int, num_attachments: int) -> tuple[int, int]:
     """
@@ -84,7 +85,7 @@ def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, emails
     n = folder.content_count
     batch_size = 50
 
-    for i in range(0, n, batch_size):
+    for i in tqdm(range(0, n, batch_size), desc=f"Reading emails and attachments from folder {folder.display_name}"):
         batched_emails = []
         batched_attachments = []
 
