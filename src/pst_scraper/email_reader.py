@@ -1,5 +1,6 @@
 from aspose.email.mapi import MapiMessage
 from pst_scraper.email_enums import *
+from base64 import b64encode
 
 def parse_mapi_message(message: MapiMessage):
     """
@@ -8,6 +9,9 @@ def parse_mapi_message(message: MapiMessage):
     Args:
         message: The mapi message to parse.
     """
+    if message.is_encrypted:
+        raise RuntimeError("We can't work with encrypted files.")
+
     if message.is_signed:
         message.remove_signature()
     
@@ -30,6 +34,10 @@ def parse_mapi_message(message: MapiMessage):
             body = message.body_html
         case BodyType.RTF:
             body = message.body_rtf
+
+    body = str(body)
+    if (body is None) or (body.lower() == "nan"):
+        body = ""
             
     recipient_dict = {RecipientType.TO: [], RecipientType.CC: [], RecipientType.BCC: []}
     for recipient in message.recipients:
@@ -50,10 +58,9 @@ def parse_mapi_message(message: MapiMessage):
                 new_message_dict = parse_mapi_message(new_message)
                 linked_messages.append(new_message_dict)
             else:
-                raise RuntimeError("Attachment has no binary data and either has no object data or is not an outlook message. Either way, we don't know how to handle it.")
+                raise RuntimeError("Attachment has object data but is not an outlook message, so we don't know how to handle it.")
         elif attachment.binary_data:
-            binary_data = bytes(attachment.binary_data)
-            attachment_dict = {"name": display_name, "data": binary_data}
+            attachment_dict = {"name": display_name, "data": bytes(attachment.binary_data)}
             attachments.append(attachment_dict)
         else:
             attachment_dict = {"name": display_name, "data": None}
@@ -70,7 +77,7 @@ def parse_mapi_message(message: MapiMessage):
         "body": body,
         "recipients": recipient_dict,
         "attachments": attachments,
-        "linked_messages": linked_messages
+        "linked_messages": linked_messages,
     }
 
     return email_dict
