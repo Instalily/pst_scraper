@@ -167,12 +167,12 @@ def read_folder_emails(pst: PersonalStorage, folder: FolderInfo, emails_csv_path
 
     return read_folder_emails_internal(pst, folder, emails_csv_path, attachments_csv_path, accounts, emails_to_recipients_csv_path, attachments_dir, num_emails, num_attachments)
 
-def read_psts(pst_files: list[str] | list[bytes], emails_csv_path: str, attachments_csv_path: str, accounts_csv_path: str, emails_to_recipients_csv_path: str, attachments_dir: str) -> tuple[int, int]:
+def read_psts(pst_files: list[str] | list[BytesIO], emails_csv_path: str, attachments_csv_path: str, accounts_csv_path: str, emails_to_recipients_csv_path: str, attachments_dir: str) -> tuple[int, int]:
     """
     Reads emails and attachments from a list of pst files and writes them to a csv file.
     
     Args:
-        pst_file_paths: The list of pst files to read emails and attachments from.
+        pst_files: The list of pst files to read emails and attachments from.
         output_emails_path: The path to the csv file to write the emails to.
         output_attachments_path: The path to the csv file to write the attachments to.
         output_accounts_path: The path to the csv file to write the accounts to.
@@ -209,8 +209,8 @@ def read_psts(pst_files: list[str] | list[bytes], emails_csv_path: str, attachme
     for pst_file in pst_files:
         if isinstance(pst_file, str):
             pst = PersonalStorage.from_file(pst_file)
-        elif isinstance(pst_file, bytes):
-            pst = PersonalStorage.from_stream(BytesIO(pst_file))
+        elif isinstance(pst_file, BytesIO):
+            pst = PersonalStorage.from_stream(pst_file)
         else:
             raise ValueError(f"Invalid pst file type: {type(pst_file)}")
 
