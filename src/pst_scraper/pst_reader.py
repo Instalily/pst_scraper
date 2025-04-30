@@ -79,7 +79,7 @@ def parse_email_dict_internal(email_dict: dict, batched_emails: list[dict], batc
     return num_emails, num_attachments
 
     
-def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, emails_csv_path: str, attachments_csv_path: str, accounts_csv_path: str, accounts: dict[str, str], emails_to_recipients_csv_path: str, attachments_dir: str, initial_num_emails: int, initial_num_attachments: int) -> tuple[int, int]:
+def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, emails_csv_path: str, attachments_csv_path: str, accounts: dict[str, str], emails_to_recipients_csv_path: str, attachments_dir: str, initial_num_emails: int, initial_num_attachments: int) -> tuple[int, int]:
     """
     Reads emails and attachments from a folder and appends them to a csv file.
     
@@ -102,7 +102,7 @@ def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, emails
     num_attachments = initial_num_attachments
 
     for sub_folder in folder.get_sub_folders():
-        num_emails, num_attachments = read_folder_emails_internal(pst, sub_folder, emails_csv_path, attachments_csv_path, accounts_csv_path, accounts, emails_to_recipients_csv_path, attachments_dir, num_emails, num_attachments)
+        num_emails, num_attachments = read_folder_emails_internal(pst, sub_folder, emails_csv_path, attachments_csv_path, accounts, emails_to_recipients_csv_path, attachments_dir, num_emails, num_attachments)
 
     n = folder.content_count
     batch_size = 50
@@ -143,16 +143,10 @@ def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, emails
                 fc.writeheader()
 
             fc.writerows(batched_emails_to_recipients)
-
-        accounts_list = [{"email": email, "display_name": display_name} for email, display_name in accounts.items()]
-        with open(accounts_csv_path, "w") as f:
-            fc = csv.DictWriter(f, fieldnames=accounts_list[0].keys())
-            fc.writeheader()
-            fc.writerows(accounts_list)
     
     return num_emails, num_attachments
 
-def read_folder_emails(pst: PersonalStorage, folder: FolderInfo, emails_csv_path: str, attachments_csv_path: str, accounts_csv_path: str, accounts: dict[str, str], emails_to_recipients_csv_path: str, attachments_dir: str) -> tuple[int, int]:
+def read_folder_emails(pst: PersonalStorage, folder: FolderInfo, emails_csv_path: str, attachments_csv_path: str, accounts: dict[str, str], emails_to_recipients_csv_path: str, attachments_dir: str) -> tuple[int, int]:
     """
     Reads emails and attachments from a folder and appends them to a csv file.
     
@@ -171,7 +165,7 @@ def read_folder_emails(pst: PersonalStorage, folder: FolderInfo, emails_csv_path
     num_emails = 0
     num_attachments = 0
 
-    return read_folder_emails_internal(pst, folder, emails_csv_path, attachments_csv_path, accounts_csv_path, accounts, emails_to_recipients_csv_path, attachments_dir, num_emails, num_attachments)
+    return read_folder_emails_internal(pst, folder, emails_csv_path, attachments_csv_path, accounts, emails_to_recipients_csv_path, attachments_dir, num_emails, num_attachments)
 
 def read_psts(pst_file_paths: list[str], emails_csv_path: str, attachments_csv_path: str, accounts_csv_path: str, emails_to_recipients_csv_path: str, attachments_dir: str) -> tuple[int, int]:
     """
@@ -216,5 +210,11 @@ def read_psts(pst_file_paths: list[str], emails_csv_path: str, attachments_csv_p
         pst = PersonalStorage.from_file(pst_file_path)
         pst_root = pst.root_folder
         num_emails, num_attachments = read_folder_emails_internal(pst, pst_root, emails_csv_path, attachments_csv_path, accounts_csv_path, accounts, emails_to_recipients_csv_path, attachments_dir, num_emails, num_attachments)
+
+    accounts_list = [{"email": email, "display_name": display_name} for email, display_name in accounts.items()]
+    with open(accounts_csv_path, "w") as f:
+        fc = csv.DictWriter(f, fieldnames=accounts_list[0].keys())
+        fc.writeheader()
+        fc.writerows(accounts_list)
 
     return num_emails, num_attachments
