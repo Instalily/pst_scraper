@@ -2,7 +2,7 @@ import os, csv, base64
 from aspose.email.storage.pst import PersonalStorage, FolderInfo
 from pst_scraper.email_reader import parse_mapi_message
 from pst_scraper.email_enums import *
-
+from io import BytesIO
 def parse_email_dict_internal(email_dict: dict, batched_emails: list[dict], batched_attachments: list[dict], accounts: dict[str, str], batched_emails_to_recipients: list[dict], attachments_dir: str, num_emails: int, num_attachments: int, linked_from : int = -1) -> tuple[int, int]:
     """
     Parses an email dictionary and appends it to a list of emails and attachments.
@@ -167,7 +167,7 @@ def read_folder_emails(pst: PersonalStorage, folder: FolderInfo, emails_csv_path
 
     return read_folder_emails_internal(pst, folder, emails_csv_path, attachments_csv_path, accounts, emails_to_recipients_csv_path, attachments_dir, num_emails, num_attachments)
 
-def read_psts(pst_file_paths: list[str], emails_csv_path: str, attachments_csv_path: str, accounts_csv_path: str, emails_to_recipients_csv_path: str, attachments_dir: str) -> tuple[int, int]:
+def read_psts(pst_files: list[str] | list[bytes], emails_csv_path: str, attachments_csv_path: str, accounts_csv_path: str, emails_to_recipients_csv_path: str, attachments_dir: str) -> tuple[int, int]:
     """
     Reads emails and attachments from a list of pst files and writes them to a csv file.
     
@@ -206,8 +206,14 @@ def read_psts(pst_file_paths: list[str], emails_csv_path: str, attachments_csv_p
             for row in reader:
                 accounts[row["email"]] = row["display_name"]
 
-    for pst_file_path in pst_file_paths:
-        pst = PersonalStorage.from_file(pst_file_path)
+    for pst_file in pst_files:
+        if isinstance(pst_file, str):
+            pst = PersonalStorage.from_file(pst_file)
+        elif isinstance(pst_file, bytes):
+            pst = PersonalStorage.from_stream(BytesIO(pst_file))
+        else:
+            raise ValueError(f"Invalid pst file type: {type(pst_file)}")
+
         pst_root = pst.root_folder
         num_emails, num_attachments = read_folder_emails_internal(pst, pst_root, emails_csv_path, attachments_csv_path, accounts, emails_to_recipients_csv_path, attachments_dir, num_emails, num_attachments)
 
