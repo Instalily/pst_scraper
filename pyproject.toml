@@ -5,12 +5,27 @@ description = "A Python utility that converts Microsoft Outlook PST files into s
 authors = [
     {name = "Evan Vera", email = "evan@instalily.ai"}
 ]
+maintainers = [
+    {name = "Instalily", email = "evan@instalily.ai"}
+]
 dependencies = [
     "Aspose.Email-for-Python-via-NET>=25.4",
 ]
 requires-python = ">=3.12"
 readme = "README.md"
 license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+project_urls = {
+    "Homepage" = "https://github.com/Instalily/pst_scraper",
+    "Repository" = "https://github.com/Instalily/pst_scraper.git",
+    "Bug Tracker" = "https://github.com/Instalily/pst_scraper/issues",
+}
 
 [build-system]
 requires = ["hatchling"]

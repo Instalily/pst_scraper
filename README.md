@@ -1,5 +1,9 @@
 # PST to CSV Converter
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-blue.svg)](https://github.com/Instalily/pst_scraper)
+
 A Python utility that converts Microsoft Outlook PST files into structured CSV documents. This tool extracts emails, attachments, and linked messages from PST files and organizes them into separate CSV files for easy analysis and processing.
 
 ## Features
@@ -14,7 +18,11 @@ A Python utility that converts Microsoft Outlook PST files into structured CSV d
 
 ## Installation
 
-1. Clone this repository
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/Instalily/pst_scraper.git
+   cd pst_scraper
+   ```
 2. Create a Python virtual environment (Python 3.12 or higher required):
    ```bash
    python -m venv pst_scraper_env
@@ -128,3 +136,15 @@ The emails to recipients CSV file contains:
 - Email addresses are stored in lowercase to ensure consistent matching
 - The body field in emails.csv uses CSV-compatible escaping for quotes and newlines (see Body Text Formatting section)
 - All transformations to the body text are reversible using the provided restoration code
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## About
+
+This project is maintained by [Instalily](https://github.com/Instalily). For any questions or issues, please open an issue on the [GitHub repository](https://github.com/Instalily/pst_scraper/issues).
