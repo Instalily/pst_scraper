@@ -21,7 +21,7 @@ classifiers = [
 project_urls = {
     "Homepage" = "https://github.com/Instalily/pst_scraper",
     "Repository" = "https://github.com/Instalily/pst_scraper.git",
-    "Bug Tracker" = "https://github.com/Instalily/pst_scraper/issues",
+    "Bug Tracker" = "https://github.com/Instalily/pst_scraper/issues"
 }
 
 [build-system]
