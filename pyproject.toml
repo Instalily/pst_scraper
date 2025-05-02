@@ -5,9 +5,6 @@ description = "A Python utility that converts Microsoft Outlook PST files into s
 authors = [
     {name = "Evan Vera", email = "evan@instalily.ai"}
 ]
-maintainers = [
-    {name = "Instalily", email = "evan@instalily.ai"}
-]
 dependencies = [
     "Aspose.Email-for-Python-via-NET>=25.4",
 ]
