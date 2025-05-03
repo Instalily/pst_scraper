@@ -18,11 +18,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12"
 ]
-project_urls = {
-    "Homepage" = "https://github.com/Instalily/pst_scraper",
-    "Repository" = "https://github.com/Instalily/pst_scraper.git",
-    "Bug Tracker" = "https://github.com/Instalily/pst_scraper/issues"
-}
 
 [build-system]
 requires = ["hatchling"]
