@@ -26,8 +26,11 @@ def parse_email_dict_internal(email_dict: dict, batched_emails: list[dict], batc
 
     email_dict["linked_from"] = linked_from
 
-    email_dict["sender"] = email_dict.pop("sender_email")
-    email_dict.pop("sender_name")
+    email_dict["sender"] = email_dict.pop("sender_email").lower()
+    sender_name = email_dict.pop("sender_name")
+
+    if email_dict["sender"] and email_dict["sender"] not in accounts:
+        accounts[email_dict["sender"]] = sender_name
 
     old_recipients = email_dict.pop("recipients")
     for recipient in old_recipients:
