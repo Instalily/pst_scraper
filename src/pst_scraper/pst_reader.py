@@ -122,7 +122,7 @@ def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, emails
 
         write_emails_header = not os.path.exists(emails_csv_path)
         with open(emails_csv_path, "w" if write_emails_header else "a") as f:
-            fc = csv.DictWriter(f, fieldnames=batched_emails[0].keys())
+            fc = csv.DictWriter(f, fieldnames=["subject","conversation_topic","client_submit_time","delivery_time","sensitivity","body_type","body","id","linked_from","sender"])
             
             if write_emails_header:
                 fc.writeheader()
@@ -131,7 +131,7 @@ def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, emails
 
         write_attachments_header = not os.path.exists(attachments_csv_path)
         with open(attachments_csv_path, "w" if write_attachments_header else "a") as f:
-            fc = csv.DictWriter(f, fieldnames=batched_attachments[0].keys())
+            fc = csv.DictWriter(f, fieldnames=["name","id","email_id","path"])
             
             if write_attachments_header:
                 fc.writeheader()
@@ -140,7 +140,7 @@ def read_folder_emails_internal(pst: PersonalStorage, folder: FolderInfo, emails
 
         write_emails_to_recipients_header = not os.path.exists(emails_to_recipients_csv_path)
         with open(emails_to_recipients_csv_path, "w" if write_emails_to_recipients_header else "a") as f:
-            fc = csv.DictWriter(f, fieldnames=batched_emails_to_recipients[0].keys())
+            fc = csv.DictWriter(f, fieldnames=["email_id","account_id","recipient_type"])
             
             if write_emails_to_recipients_header:
                 fc.writeheader()
@@ -222,7 +222,7 @@ def read_psts(pst_files: list[str] | list[BytesIO], emails_csv_path: str, attach
 
     accounts_list = [{"email": email, "display_name": display_name} for email, display_name in accounts.items()]
     with open(accounts_csv_path, "w") as f:
-        fc = csv.DictWriter(f, fieldnames=accounts_list[0].keys())
+        fc = csv.DictWriter(f, fieldnames=["email","display_name"])
         fc.writeheader()
         fc.writerows(accounts_list)
 
